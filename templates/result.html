@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Prediction Result | HyperBoost</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    /* Navbar link default and hover styles */
+.navbar-nav .nav-link {
+    color: #343a40; /* default dark color */
+    transition: color 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #dc3545; /* red on hover */
+}
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      color: #343a40;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 10%;
+      /* moves image down slightly */
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("https://previews.123rf.com/images/www3d/www3d1907/www3d190700007/129337719-stethoscope-red-color-and-rectangle-shape-frame-made-from-tube-stethoscope-medicine-equipment-and.jpg") no-repeat center bottom;
+      background-size: auto 100%;
+      filter: blur(0px) brightness(0.5);
+      opacity: 0.25;
+      z-index: -1;
+    }
+
+    .result-card {
+      background-color: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      padding: 35px;
+      text-align: center;
+      margin-top: 150px;
+    }
+
+    .risk-high {
+      color: #d32f2f;
+      font-weight: 600;
+    }
+
+    .risk-low {
+      color: #2e7d32;
+      font-weight: 600;
+    }
+
+    .navbar {
+      background-color: #ffffff !important;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h3 {
+      color: #dc3545;
+    }
+
+    h5 {
+      color: #343a40;
+      margin-top: 20px;
+    }
+
+    ul li {
+      text-align: left;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+
+<body>
+<nav class="navbar navbar-light bg-white shadow-sm">
+  <div class="container">
+    <a class="navbar-brand text-danger fw-bold" href="/"><i class="bi bi-heart-pulse"></i> HyperBoost</a>
+
+    <ul class="navbar-nav d-flex flex-row ms-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="/">Home</a>
+      </li>
+      <li class="nav-item ms-3">
+        <a class="nav-link" href="/learn">FAQ</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+
+  <div class="container">
+    <div class="col-12 col-md-6 mx-auto result-card">
+      <h3 class="fw-bold mb-3"><i class="bi bi-clipboard2-heart"></i> Prediction Result</h3>
+
+      {% if prediction == "Abnormal" %}
+      <h4 class="risk-high mb-3"><i class="bi bi-exclamation-octagon-fill"></i> High Risk of Hypertension</h4>
+      {% else %}
+      <h4 class="risk-low mb-3"><i class="bi bi-check-circle-fill"></i> Normal Blood Pressure</h4>
+      {% endif %}
+
+      <p>Probability: <b>{{ probability }}%</b></p>
+
+      <div class="text-start mt-4">
+        <h5 class="fw-bold"><i class="bi bi-heart"></i> Health Tips</h5>
+        <ul>
+          {% for tip in tips %}
+          <li>{{ tip }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <a href="/predict_page" class="btn btn-danger w-100 mt-3"><i class="bi bi-arrow-left-circle"></i> Predict
+        Again</a>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>HyperBoost | Predict</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        /* Navbar link default and hover styles */
+.navbar-nav .nav-link {
+    color: #343a40; /* default dark color */
+    transition: color 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #dc3545; /* red on hover */
+}
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            position: relative;
+            margin: 0;
+            min-height: 100vh;
+            color: #212529;
+        }
+
+        /* Background watermark */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("https://media.istockphoto.com/id/1687458968/photo/medical-technology-concept-3d-rendering.jpg?s=612x612&w=0&k=20&c=kYW968kLuD1GdwldE8xZP2Hej2aBio1TZBcioIyOa18=") no-repeat center center;
+            background-size: cover;
+            filter: blur(10px) brightness(0.5);
+            z-index: -1;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+            margin-top: 30px;
+        }
+
+        @media (max-width: 576px) {
+            .glass-card {
+                padding: 20px;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar navbar-light bg-white shadow-sm">
+    <div class="container">
+        <a class="navbar-brand text-danger fw-bold" href="/"><i class="bi bi-heart-pulse"></i> HyperBoost</a>
+
+        <ul class="navbar-nav d-flex flex-row ms-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item ms-3">
+                <a class="nav-link" href="/learn">FAQ</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+
+    <div class="container">
+        <div class="col-12 col-md-8 mx-auto glass-card">
+            <h3 class="text-danger mb-3"><i class="bi bi-clipboard2-pulse"></i> Enter Patient Details</h3>
+
+            <form action="/predict" method="post" class="row g-3">
+                <!-- Example: Sex -->
+                <div class="col-md-6">
+                    <label class="form-label">Sex</label>
+                    <select name="Sex" class="form-control" id="sex" onchange="togglePregnancy()">
+                        <option value="1">Male</option>
+                        <option value="0">Female</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Pregnancy</label>
+                    <select name="Pregnancy" class="form-control" id="pregnancy">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <!-- Repeat other fields similarly -->
+                    <div class="col-md-6">
+                        <label class="form-label">Smoking</label>
+                        <select name="Smoking" class="form-control">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+                    
+                    <!-- CKD -->
+                    <div class="col-md-6">
+                        <label class="form-label">Chronic Kidney Disease</label>
+                        <select name="Chronic_kidney_disease" class="form-control">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Adrenal/Thyroid -->
+                    <div class="col-md-6">
+                        <label class="form-label">Adrenal & Thyroid Disorders</label>
+                        <select name="Adrenal_and_thyroid_disorders" class="form-control">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+                    <!-- Genetic -->
+                    <div class="col-md-6">
+                        <label class="form-label">Genetic Pedigree Coefficient</label>
+                        <select name="Genetic_Pedigree_Coefficient" class="form-control">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Stress -->
+                    <div class="col-md-6">
+                        <label class="form-label">Level of Stress</label>
+                        <select name="Level_of_Stress" class="form-control">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Salt Intake -->
+                    <div class="col-md-6">
+                        <label class="form-label">Salt Intake</label>
+                        <select name="salt_content_in_the_diet" class="form-control">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Alcohol -->
+                    <div class="col-md-6">
+                        <label class="form-label">Alcohol Consumption</label>
+                        <select name="alcohol_consumption_per_day" class="form-control">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Hemoglobin -->
+                    <div class="col-md-6">
+                        <label class="form-label">Hemoglobin (g/dL)</label>
+                        <input type="number" step="0.1" name="Level_of_Hemoglobin" class="form-control" required>
+                    </div>
+                <!-- Age -->
+                <div class="col-md-6">
+                    <label class="form-label">Age</label>
+                    <input type="number" name="Age" class="form-control" required>
+                </div>
+
+                <!-- BMI -->
+                <div class="col-md-6">
+                    <label class="form-label">BMI</label>
+                    <input type="number" step="0.1" name="BMI" class="form-control" required>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-12 mt-3">
+                    <button class="btn btn-danger w-100">
+                        <i class="bi bi-search-heart"></i> Predict Risk
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function togglePregnancy() {
+            const sex = document.getElementById("sex").value;
+            const pregnancy = document.getElementById("pregnancy");
+            if (sex === "1") {
+                pregnancy.value = "0";
+                pregnancy.disabled = true;
+                pregnancy.style.backgroundColor = "#eee";
+            } else {
+                pregnancy.disabled = false;
+                pregnancy.style.backgroundColor = "white";
+            }
+        }
+        window.onload = togglePregnancy;
+    </script>
+</body>
+
+</html>
+
+
+
