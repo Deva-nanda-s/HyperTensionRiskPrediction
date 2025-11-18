@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+Env/
+env/
+.venv/
+venv/
+*.log
+.DS_Store
+data.csv
+data_preprocessed.csv
+synthetic_test_data.csv
+confusion_matrix.png
+roc_curve.png
+test_data.pkl
