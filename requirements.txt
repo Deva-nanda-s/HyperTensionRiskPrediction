@@ -1,15 +1,12 @@
-# Ensure pip can handle building wheels
 pip>=23.2
 setuptools>=68.0
 wheel>=0.40
 
-# Web framework
 Flask==2.3.3
 Werkzeug==2.3.7
 gunicorn==21.2.0
 
-# Data processing / ML
-numpy==2.1.1
+numpy==1.26.4
 pandas==2.2.2
 scikit-learn==1.2.2
 joblib==1.2.0
