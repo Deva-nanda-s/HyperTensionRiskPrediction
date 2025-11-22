@@ -13,3 +13,8 @@ synthetic_test_data.csv
 confusion_matrix.png
 roc_curve.png
 test_data.pkl
+quick_predict.py
+rfe_xgb_test_performance_final_robust_fixed.png
+test.py
+synthetic_predictions_top6.csv
+tempCodeRunnerFile.py
