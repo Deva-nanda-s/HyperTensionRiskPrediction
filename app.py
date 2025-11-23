@@ -10,7 +10,9 @@ app = Flask(__name__)
 # Load pipeline bundle
 # --------------------------
 try:
-    bundle = joblib.load("ml_models/xgb_pipeline_rfe_top6.pkl")
+    BUNDLE_PATH = os.path.join(os.path.dirname(__file__), "ml_models", "xgb_pipeline_rfe_top6v2.pkl")
+    bundle = joblib.load(BUNDLE_PATH)
+
     model = bundle["model"]
     scaler = bundle["scaler"]
     features = bundle["features"]
