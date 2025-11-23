@@ -106,7 +106,7 @@ bundle = {
 }
 
 
-bundle_path = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
+bundle_path = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6v2.pkl")
 joblib.dump(bundle, bundle_path)
 print(f"\n✅ Full pipeline (model + scaler + features) saved at '{bundle_path}'")
 
