@@ -123,21 +123,34 @@ def about():
 def predict():
     if model is None:
         return "❌ Error: Machine Learning model is not loaded.", 500
-        
+    
     try:
         form = request.form
 
-        # ---------------- Gather form data and ensure correct type casting ----------------
+        # ---------------- Safe numeric parsing ----------------
+        def safe_int(val, default=0):
+            try:
+                return int(val)
+            except (TypeError, ValueError):
+                return default
+
+        def safe_float(val, default=0.0):
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                return default
+
+        # ---------------- Gather form data ----------------
         data = {
-            "Sex": int(form.get("Sex", 0)),
-            "Pregnancy": int(form.get("Pregnancy", 0)),
-            "Smoking": int(form.get("Smoking", 0)),
-            "Chronic_kidney_disease": int(form.get("Chronic_kidney_disease", 0)),
-            "Adrenal_and_thyroid_disorders": int(form.get("Adrenal_and_thyroid_disorders", 0)),
-            
-            "Level_of_Hemoglobin": float(form.get("Level_of_Hemoglobin", 14.0)),
-            "Age": float(form.get("Age", 30.0)),
-            "BMI": float(form.get("BMI", 22.0)),
+            "Sex": safe_int(form.get("Sex"), 0),
+            "Pregnancy": safe_int(form.get("Pregnancy") or form.get("Pregnancy_hidden"), 0),
+            "Smoking": safe_int(form.get("Smoking"), 0),
+            "Chronic_kidney_disease": safe_int(form.get("Chronic_kidney_disease"), 0),
+            "Adrenal_and_thyroid_disorders": safe_int(form.get("Adrenal_and_thyroid_disorders"), 0),
+
+            "Level_of_Hemoglobin": safe_float(form.get("Level_of_Hemoglobin"), 14.0),
+            "Age": safe_float(form.get("Age"), 30.0),
+            "BMI": safe_float(form.get("BMI"), 22.0),
 
             "Genetic_Pedigree_Coefficient": form.get("Genetic_Pedigree_Coefficient"),
             "Level_of_Stress": form.get("Level_of_Stress"),
@@ -155,31 +168,40 @@ def predict():
             "alcohol_consumption_per_day",
             "Physical_activity",
         ]:
-            data[key] = encode.get(data[key], 2.0)
+            data[key] = encode.get(data[key], 2.0)  # default to Medium if missing
 
-        # ---------------- Prepare and Scale Input for ML Model ----------------
+        # ---------------- Prepare input ----------------
         X_input = np.array([data[f] for f in features]).reshape(1, -1)
         X_scaled = scaler.transform(X_input)
 
         # ---------------- Predict probability ----------------
         prob = model.predict_proba(X_scaled)[:, 1][0]
-        
-        # ---------------- Apply Override and Finalize Result ----------------
+
+        # ---------------- Apply override logic ----------------
         prob, result = apply_health_override(data, prob, threshold)
 
-        # ---------------- Generate dynamic health tips ----------------
+        # ---------------- Generate dynamic tips ----------------
         tips = generate_health_tips(data, result)
 
         # ---------------- Render result ----------------
         return render_template(
-            "result.html", prediction=result, probability=round(prob * 100, 2), tips=tips
+            "result.html",
+            prediction=result,
+            probability=round(prob * 100, 2),
+            tips=tips
         )
 
     except Exception as e:
-        print(f"Prediction Error: {e}")
+        # Log error for debugging (check Render logs)
+        print(f"[PREDICTION ERROR] {e}")
         return render_template(
-            "error.html", error_message="An internal error occurred during prediction. Please check your inputs and try again."
+            "error.html",
+            error_message=(
+                "⚠️ An internal error occurred during prediction. "
+                "Please ensure all fields are filled correctly and try again."
+            )
         )
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
