@@ -1,5 +1,4 @@
-# retrain_xgb_pipeline.py
-
+# retrain_pipeline.py
 import os
 import pandas as pd
 import joblib
@@ -9,19 +8,19 @@ from sklearn.feature_selection import RFE
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-# ---------------- Setup ----------------
+# ---------------- Paths ----------------
 DATA_FILE = "data_preprocessed.csv"
 MODEL_DIR = "ml_models"
 os.makedirs(MODEL_DIR, exist_ok=True)
+BUNDLE_PATH = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 
+# ---------------- Load Data ----------------
 if not os.path.exists(DATA_FILE):
     raise FileNotFoundError(f"{DATA_FILE} not found!")
 
-# ---------------- Load Data ----------------
 df = pd.read_csv(DATA_FILE)
 ID_COL = "Patient_Number"
 TARGET = "Blood_Pressure_Abnormality"
-
 X = df.drop([ID_COL, TARGET], axis=1)
 y = df[TARGET]
 
@@ -34,33 +33,32 @@ X_train, X_test, y_train, y_test = train_test_split(
 pos_count = y_train.value_counts()[1]
 neg_count = y_train.value_counts()[0]
 scale_pos_weight = neg_count / pos_count if pos_count != 0 else 1.0
-print(f"Scale_pos_weight: {scale_pos_weight:.2f}")
+print(f"scale_pos_weight = {scale_pos_weight:.2f}")
 
-# ---------------- RFE for top 6 features ----------------
-base_xgb = XGBClassifier(
+# ---------------- Feature Selection (RFE) ----------------
+xgb_base = XGBClassifier(
     random_state=42,
-    n_estimators=100,
-    eval_metric="logloss"
+    eval_metric="logloss",
+    n_estimators=100
 )
 
-rfe = RFE(estimator=base_xgb, n_features_to_select=6)
+rfe = RFE(estimator=xgb_base, n_features_to_select=6)
 rfe.fit(X_train, y_train)
-
 selected_features = X_train.columns[rfe.support_].tolist()
-print("Top features selected by RFE:", selected_features)
+print("Top features:", selected_features)
 
-# ---------------- Prepare selected data ----------------
+# ---------------- Prepare Selected Features ----------------
 X_train_sel = X_train[selected_features].copy()
 X_test_sel = X_test[selected_features].copy()
 
-# ---------------- Scale numeric features ----------------
-numeric_cols = X_train_sel.select_dtypes(include=["float64", "int64"]).columns.tolist()
+# ---------------- Scale Numeric Features ----------------
+numeric_cols = X_train_sel.select_dtypes(include=["float64", "int64"]).columns
 scaler = StandardScaler()
-if numeric_cols:
+if len(numeric_cols) > 0:
     X_train_sel[numeric_cols] = scaler.fit_transform(X_train_sel[numeric_cols])
     X_test_sel[numeric_cols] = scaler.transform(X_test_sel[numeric_cols])
 
-# ---------------- Train final model ----------------
+# ---------------- Train Final Model ----------------
 final_model = XGBClassifier(
     objective="binary:logistic",
     eval_metric="logloss",
@@ -78,7 +76,6 @@ final_model = XGBClassifier(
 )
 
 final_model.fit(X_train_sel, y_train)
-print("✅ Model trained successfully!")
 
 # ---------------- Evaluate ----------------
 y_train_pred = final_model.predict(X_train_sel)
@@ -86,20 +83,20 @@ y_probs = final_model.predict_proba(X_test_sel)[:, 1]
 threshold = 0.55
 y_test_pred = (y_probs >= threshold).astype(int)
 
-print("Training Accuracy:", accuracy_score(y_train, y_train_pred))
-print("Testing Accuracy:", accuracy_score(y_test, y_test_pred))
+print("Train Accuracy:", accuracy_score(y_train, y_train_pred))
+print("Test Accuracy:", accuracy_score(y_test, y_test_pred))
 print("Confusion Matrix:\n", confusion_matrix(y_test, y_test_pred))
 print("Classification Report:\n", classification_report(y_test, y_test_pred))
 
-# ---------------- Save model bundle ----------------
+# ---------------- Save Full Pipeline ----------------
 bundle = {
     "model": final_model,
     "scaler": scaler,
     "features": selected_features,
     "threshold": threshold
 }
+joblib.dump(bundle, BUNDLE_PATH)
+print(f"✅ Full pipeline saved at {BUNDLE_PATH}")
 
-bundle_path = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
-joblib.dump(bundle, bundle_path)
-print(f"✅ Pipeline saved at {bundle_path}")
-
+# Optional: save test data for future explanations
+joblib.dump({"X_test": X_test_sel, "y_test": y_test}, os.path.join(MODEL_DIR, "test_data.pkl"))

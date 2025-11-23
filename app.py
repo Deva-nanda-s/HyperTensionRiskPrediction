@@ -1,26 +1,26 @@
 from flask import Flask, render_template, request
-import numpy as np
 import joblib
 import os
 import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 
-# --------------------------
-# Load pipeline bundle
-# --------------------------
-try:
-    BUNDLE_PATH = os.path.join(os.path.dirname(__file__), "ml_models", "xgb_pipeline_rfe_top6.pkl")
-    bundle = joblib.load(BUNDLE_PATH)
+# ------------------ Load model ------------------
+MODEL_DIR = "ml_models"
+BUNDLE_PATH = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 
+try:
+    bundle = joblib.load(BUNDLE_PATH)
     model = bundle["model"]
     scaler = bundle["scaler"]
     features = bundle["features"]
     threshold = bundle.get("threshold", 0.55)
+    print("✅ Model loaded successfully")
 except FileNotFoundError:
     model, scaler, features = None, None, []
     threshold = 0.55
-
+    print("❌ Model file not found")
 
 # --------------------------
 # HELPER FUNCTIONS
@@ -125,14 +125,12 @@ def about():
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
-        print("❌ ERROR: Model is not loaded. Check 'ml_models/xgb_pipeline_rfe_top6v2.pkl'")
         return "❌ Error: Machine Learning model is not loaded.", 500
 
     try:
         form = request.form
-        print("[DEBUG] Form data received:", form)
 
-        # ---------------- Safe numeric parsing ----------------
+        # ---------------- Safe parsing functions ----------------
         def safe_int(val, default=0):
             try:
                 return int(val)
@@ -171,26 +169,65 @@ def predict():
             "alcohol_consumption_per_day",
             "Physical_activity",
         ]:
-            data[key] = encode.get(data[key], 2.0)  # default to Medium
-        print("[DEBUG] Encoded features:", data)
+            data[key] = encode.get(data[key], 2.0)  # default to Medium if missing
 
-        # ---------------- Prepare input ----------------
+        # ---------------- Prepare input for model ----------------
         X_input = pd.DataFrame([data], columns=features)
         X_scaled = X_input.copy()
         numeric_cols = X_scaled.select_dtypes(include=["float64", "int64"]).columns
         if len(numeric_cols) > 0:
             X_scaled[numeric_cols] = scaler.transform(X_scaled[numeric_cols])
-        print("[DEBUG] Input ready for prediction:\n", X_scaled)
 
         # ---------------- Predict probability ----------------
         prob = model.predict_proba(X_scaled)[:, 1][0]
-        print(f"[DEBUG] Raw predicted probability: {prob}")
 
-        # ---------------- Apply override logic ----------------
+        # ---------------- Apply override logic (optional) ----------------
+        def apply_health_override(data, prob, threshold):
+            is_clearly_healthy = (
+                data["Age"] < 30
+                and 18.5 <= data["BMI"] <= 25
+                and data["Level_of_Stress"] == 1.0
+                and data["Smoking"] == 0
+                and data["Chronic_kidney_disease"] == 0
+                and data["Adrenal_and_thyroid_disorders"] == 0
+            )
+            if is_clearly_healthy:
+                prob = min(prob, 0.5)
+                return prob, "Normal"
+            return prob, "Abnormal" if prob >= threshold else "Normal"
+
         prob, result = apply_health_override(data, prob, threshold)
-        print(f"[DEBUG] After override: {prob}, Result: {result}")
 
         # ---------------- Generate dynamic tips ----------------
+        def generate_health_tips(data, result):
+            tips = []
+            if data["Smoking"] == 1:
+                tips.append("Avoid smoking to reduce hypertension risk.")
+            if data["Level_of_Stress"] >= 2.0:
+                tips.append("Try stress-reducing activities like meditation or yoga.")
+            if data["salt_content_in_the_diet"] >= 2.0:
+                tips.append("Reduce daily salt intake.")
+            if data["alcohol_consumption_per_day"] >= 2.0:
+                tips.append("Limit alcohol consumption.")
+            if data["Physical_activity"] <= 1.0:
+                tips.append("Engage in at least 30 minutes of exercise daily.")
+            if data["BMI"] < 18.5:
+                tips.append("Maintain a healthy body weight (underweight).")
+            elif data["BMI"] > 25:
+                tips.append("Maintain a healthy body weight (overweight).")
+            if data["Pregnancy"] == 1:
+                tips.append("Consult your doctor regularly for BP monitoring during pregnancy.")
+            if data["Level_of_Hemoglobin"] > 16.0:
+                tips.append("High hemoglobin detected; consult your doctor for advice.")
+            if data["Genetic_Pedigree_Coefficient"] == 3.0:
+                tips.append("High genetic risk detected; monitor BP regularly.")
+            elif data["Genetic_Pedigree_Coefficient"] == 2.0:
+                tips.append("Moderate genetic risk; maintain healthy lifestyle.")
+            if not tips:
+                tips.append("Continue healthy habits and regular BP check-ups." if result == "Normal"
+                            else "Monitor your blood pressure and consult a healthcare professional.")
+            return tips
+
         tips = generate_health_tips(data, result)
 
         # ---------------- Render result ----------------
@@ -202,14 +239,12 @@ def predict():
         )
 
     except Exception as e:
-        print(f"[PREDICTION ERROR] {e}", flush=True)
+        print(f"[PREDICTION ERROR] {e}")
         return render_template(
             "error.html",
-            error_message=(
-                "⚠️ An internal error occurred during prediction. "
-                "Please ensure all fields are filled correctly and try again."
-            )
+            error_message="⚠️ An internal error occurred during prediction. Ensure all fields are correct."
         )
+
 
 
 if __name__ == "__main__":
