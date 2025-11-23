@@ -1,27 +1,40 @@
-from flask import Flask, render_template, request
-import joblib
 import os
+import joblib
 import pandas as pd
-import numpy as np
+from flask import Flask, request, render_template
+from xgboost import XGBClassifier, Booster
 
 app = Flask(__name__)
 
-# ------------------ Load model ------------------
+# ---------------- Paths ----------------
 MODEL_DIR = "ml_models"
-BUNDLE_PATH = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
+MODEL_JSON = os.path.join(MODEL_DIR, "xgb_booster.json")
+PIPELINE_META = os.path.join(MODEL_DIR, "xgb_pipeline_meta.pkl")
 
+# ---------------- Load pipeline ----------------
 try:
-    bundle = joblib.load(BUNDLE_PATH)
-    model = bundle["model"]
-    scaler = bundle["scaler"]
-    features = bundle["features"]
-    threshold = bundle.get("threshold", 0.55)
-    print("✅ Model loaded successfully")
-except FileNotFoundError:
-    model, scaler, features = None, None, []
-    threshold = 0.55
-    print("❌ Model file not found")
+    booster = Booster()
+    booster.load_model(MODEL_JSON)
+    pipeline_bundle = joblib.load(PIPELINE_META)
+    scaler = pipeline_bundle["scaler"]
+    features = pipeline_bundle["features"]
+    threshold = pipeline_bundle.get("threshold", 0.55)
+    print("✅ Model and pipeline loaded successfully")
+except Exception as e:
+    print("❌ Error loading model:", e)
+    booster, scaler, features, threshold = None, None, [], 0.55
 
+# Helper: wrap Booster for sklearn-like predict
+class XGBWrapper:
+    def __init__(self, booster):
+        self.booster = booster
+    def predict_proba(self, X):
+        import numpy as np
+        dmatrix = XGBClassifier()._dmatrix(X)
+        preds = self.booster.predict(dmatrix)
+        return np.vstack([1 - preds, preds]).T
+
+xgb_model = XGBWrapper(booster) if booster else None
 # --------------------------
 # HELPER FUNCTIONS
 # --------------------------
@@ -121,8 +134,7 @@ def about():
 
 
 # --------------------------
-# PREDICT ROUTE
-@app.route("/predict", methods=["POST"])
+#@app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
         return "❌ Error: Machine Learning model is not loaded.", 500
@@ -130,38 +142,32 @@ def predict():
     try:
         form = request.form
 
-        # ---------------- Safe parsing functions ----------------
-        def safe_int(val, default=0):
+        # ---------------- Safe parsing ----------------
+        def safe_cast(val, to_type, default):
             try:
-                return int(val)
-            except (TypeError, ValueError):
-                return default
-
-        def safe_float(val, default=0.0):
-            try:
-                return float(val)
+                return to_type(val)
             except (TypeError, ValueError):
                 return default
 
         # ---------------- Gather form data ----------------
         data = {
-            "Sex": safe_int(form.get("Sex")),
-            "Pregnancy": safe_int(form.get("Pregnancy") or form.get("Pregnancy_hidden")),
-            "Smoking": safe_int(form.get("Smoking")),
-            "Chronic_kidney_disease": safe_int(form.get("Chronic_kidney_disease")),
-            "Adrenal_and_thyroid_disorders": safe_int(form.get("Adrenal_and_thyroid_disorders")),
-            "Level_of_Hemoglobin": safe_float(form.get("Level_of_Hemoglobin")),
-            "Age": safe_float(form.get("Age")),
-            "BMI": safe_float(form.get("BMI")),
-            "Genetic_Pedigree_Coefficient": form.get("Genetic_Pedigree_Coefficient"),
-            "Level_of_Stress": form.get("Level_of_Stress"),
-            "salt_content_in_the_diet": form.get("salt_content_in_the_diet"),
-            "alcohol_consumption_per_day": form.get("alcohol_consumption_per_day"),
-            "Physical_activity": form.get("Physical_activity"),
+            "Sex": safe_cast(form.get("Sex"), int, 0),
+            "Pregnancy": safe_cast(form.get("Pregnancy") or form.get("Pregnancy_hidden"), int, 0),
+            "Smoking": safe_cast(form.get("Smoking"), int, 0),
+            "Chronic_kidney_disease": safe_cast(form.get("Chronic_kidney_disease"), int, 0),
+            "Adrenal_and_thyroid_disorders": safe_cast(form.get("Adrenal_and_thyroid_disorders"), int, 0),
+            "Level_of_Hemoglobin": safe_cast(form.get("Level_of_Hemoglobin"), float, 0.0),
+            "Age": safe_cast(form.get("Age"), float, 0.0),
+            "BMI": safe_cast(form.get("BMI"), float, 0.0),
+            "Genetic_Pedigree_Coefficient": form.get("Genetic_Pedigree_Coefficient", "Medium"),
+            "Level_of_Stress": form.get("Level_of_Stress", "Medium"),
+            "salt_content_in_the_diet": form.get("salt_content_in_the_diet", "Medium"),
+            "alcohol_consumption_per_day": form.get("alcohol_consumption_per_day", "Medium"),
+            "Physical_activity": form.get("Physical_activity", "Medium"),
         }
 
         # ---------------- Encode categorical features ----------------
-        encode = {"Low": 1.0, "Medium": 2.0, "High": 3.0}
+        encode_map = {"Low": 1.0, "Medium": 2.0, "High": 3.0}
         for key in [
             "Genetic_Pedigree_Coefficient",
             "Level_of_Stress",
@@ -169,21 +175,20 @@ def predict():
             "alcohol_consumption_per_day",
             "Physical_activity",
         ]:
-            data[key] = encode.get(data[key], 2.0)  # default to Medium if missing
+            data[key] = encode_map.get(data[key], 2.0)  # Default to Medium
 
-        # ---------------- Prepare input for model ----------------
+        # ---------------- Prepare input ----------------
         X_input = pd.DataFrame([data], columns=features)
-        X_scaled = X_input.copy()
-        numeric_cols = X_scaled.select_dtypes(include=["float64", "int64"]).columns
+        numeric_cols = X_input.select_dtypes(include=["float64", "int64"]).columns
         if len(numeric_cols) > 0:
-            X_scaled[numeric_cols] = scaler.transform(X_scaled[numeric_cols])
+            X_input[numeric_cols] = scaler.transform(X_input[numeric_cols])
 
         # ---------------- Predict probability ----------------
-        prob = model.predict_proba(X_scaled)[:, 1][0]
+        prob = model.predict_proba(X_input)[:, 1][0]
 
-        # ---------------- Apply override logic (optional) ----------------
-        def apply_health_override(data, prob, threshold):
-            is_clearly_healthy = (
+        # ---------------- Override logic for clearly healthy individuals ----------------
+        def apply_override(data, prob, threshold):
+            healthy = (
                 data["Age"] < 30
                 and 18.5 <= data["BMI"] <= 25
                 and data["Level_of_Stress"] == 1.0
@@ -191,26 +196,25 @@ def predict():
                 and data["Chronic_kidney_disease"] == 0
                 and data["Adrenal_and_thyroid_disorders"] == 0
             )
-            if is_clearly_healthy:
-                prob = min(prob, 0.5)
-                return prob, "Normal"
+            if healthy:
+                return min(prob, 0.5), "Normal"
             return prob, "Abnormal" if prob >= threshold else "Normal"
 
-        prob, result = apply_health_override(data, prob, threshold)
+        prob, result = apply_override(data, prob, threshold)
 
-        # ---------------- Generate dynamic tips ----------------
-        def generate_health_tips(data, result):
+        # ---------------- Generate dynamic health tips ----------------
+        def generate_tips(data, result):
             tips = []
             if data["Smoking"] == 1:
                 tips.append("Avoid smoking to reduce hypertension risk.")
             if data["Level_of_Stress"] >= 2.0:
-                tips.append("Try stress-reducing activities like meditation or yoga.")
+                tips.append("Practice stress-reducing activities like meditation or yoga.")
             if data["salt_content_in_the_diet"] >= 2.0:
                 tips.append("Reduce daily salt intake.")
             if data["alcohol_consumption_per_day"] >= 2.0:
                 tips.append("Limit alcohol consumption.")
             if data["Physical_activity"] <= 1.0:
-                tips.append("Engage in at least 30 minutes of exercise daily.")
+                tips.append("Engage in at least 30 minutes of daily exercise.")
             if data["BMI"] < 18.5:
                 tips.append("Maintain a healthy body weight (underweight).")
             elif data["BMI"] > 25:
@@ -218,17 +222,20 @@ def predict():
             if data["Pregnancy"] == 1:
                 tips.append("Consult your doctor regularly for BP monitoring during pregnancy.")
             if data["Level_of_Hemoglobin"] > 16.0:
-                tips.append("High hemoglobin detected; consult your doctor for advice.")
+                tips.append("High hemoglobin detected; consult your doctor.")
             if data["Genetic_Pedigree_Coefficient"] == 3.0:
-                tips.append("High genetic risk detected; monitor BP regularly.")
+                tips.append("High genetic risk; monitor BP regularly.")
             elif data["Genetic_Pedigree_Coefficient"] == 2.0:
                 tips.append("Moderate genetic risk; maintain healthy lifestyle.")
+
             if not tips:
-                tips.append("Continue healthy habits and regular BP check-ups." if result == "Normal"
-                            else "Monitor your blood pressure and consult a healthcare professional.")
+                tips.append(
+                    "Continue healthy habits and regular BP check-ups." if result == "Normal"
+                    else "Monitor your blood pressure and consult a healthcare professional."
+                )
             return tips
 
-        tips = generate_health_tips(data, result)
+        tips = generate_tips(data, result)
 
         # ---------------- Render result ----------------
         return render_template(
@@ -244,6 +251,7 @@ def predict():
             "error.html",
             error_message="⚠️ An internal error occurred during prediction. Ensure all fields are correct."
         )
+
 
 
 

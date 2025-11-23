@@ -1,4 +1,4 @@
-# retrain_pipeline.py
+# retrain_pipeline_fixed.py
 import os
 import pandas as pd
 import joblib
@@ -6,13 +6,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import RFE
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 # ---------------- Paths ----------------
 DATA_FILE = "data_preprocessed.csv"
 MODEL_DIR = "ml_models"
 os.makedirs(MODEL_DIR, exist_ok=True)
-BUNDLE_PATH = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
+MODEL_JSON = os.path.join(MODEL_DIR, "xgb_booster.json")
+PIPELINE_META = os.path.join(MODEL_DIR, "xgb_pipeline_meta.pkl")
 
 # ---------------- Load Data ----------------
 if not os.path.exists(DATA_FILE):
@@ -83,20 +83,27 @@ y_probs = final_model.predict_proba(X_test_sel)[:, 1]
 threshold = 0.55
 y_test_pred = (y_probs >= threshold).astype(int)
 
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 print("Train Accuracy:", accuracy_score(y_train, y_train_pred))
 print("Test Accuracy:", accuracy_score(y_test, y_test_pred))
 print("Confusion Matrix:\n", confusion_matrix(y_test, y_test_pred))
 print("Classification Report:\n", classification_report(y_test, y_test_pred))
 
-# ---------------- Save Full Pipeline ----------------
-bundle = {
-    "model": final_model,
+# ---------------- Save Booster & Pipeline Metadata ----------------
+# Save XGBoost model in JSON (avoids use_label_encoder issues)
+booster = final_model.get_booster()
+booster.save_model(MODEL_JSON)
+
+# Save scaler, features, threshold separately
+pipeline_bundle = {
     "scaler": scaler,
     "features": selected_features,
     "threshold": threshold
 }
-joblib.dump(bundle, BUNDLE_PATH)
-print(f"✅ Full pipeline saved at {BUNDLE_PATH}")
+joblib.dump(pipeline_bundle, PIPELINE_META)
+
+print(f"✅ Booster saved at {MODEL_JSON}")
+print(f"✅ Pipeline metadata saved at {PIPELINE_META}")
 
 # Optional: save test data for future explanations
 joblib.dump({"X_test": X_test_sel, "y_test": y_test}, os.path.join(MODEL_DIR, "test_data.pkl"))
