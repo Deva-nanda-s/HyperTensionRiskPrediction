@@ -1,29 +1,27 @@
+# retrain_xgb_pipeline.py
 
-# Train XGBoost Model with RFE (Top Features) — Final Version
-
-import pandas as pd
 import os
+import pandas as pd
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import RFE
-import xgboost as xgb
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 # ---------------- Setup ----------------
+DATA_FILE = "data_preprocessed.csv"
 MODEL_DIR = "ml_models"
 os.makedirs(MODEL_DIR, exist_ok=True)
-DATA_FILE = "data_preprocessed.csv"
 
 if not os.path.exists(DATA_FILE):
-    print(f" Error: '{DATA_FILE}' not found.")
-    exit()
+    raise FileNotFoundError(f"{DATA_FILE} not found!")
 
 # ---------------- Load Data ----------------
 df = pd.read_csv(DATA_FILE)
 ID_COL = "Patient_Number"
 TARGET = "Blood_Pressure_Abnormality"
+
 X = df.drop([ID_COL, TARGET], axis=1)
 y = df[TARGET]
 
@@ -36,22 +34,20 @@ X_train, X_test, y_train, y_test = train_test_split(
 pos_count = y_train.value_counts()[1]
 neg_count = y_train.value_counts()[0]
 scale_pos_weight = neg_count / pos_count if pos_count != 0 else 1.0
-print(f"⚖️ scale_pos_weight = {scale_pos_weight:.2f}")
+print(f"Scale_pos_weight: {scale_pos_weight:.2f}")
 
-# ---------------- RFE with XGBoost ----------------
-xgb_base = XGBClassifier(
+# ---------------- RFE for top 6 features ----------------
+base_xgb = XGBClassifier(
     random_state=42,
-    eval_metric='logloss',
-    n_estimators=100
+    n_estimators=100,
+    eval_metric="logloss"
 )
 
-n_features_to_select = 6
-rfe = RFE(estimator=xgb_base, n_features_to_select=n_features_to_select)
+rfe = RFE(estimator=base_xgb, n_features_to_select=6)
 rfe.fit(X_train, y_train)
 
 selected_features = X_train.columns[rfe.support_].tolist()
-print("\n🌟 Top features selected by RFE:")
-print(selected_features)
+print("Top features selected by RFE:", selected_features)
 
 # ---------------- Prepare selected data ----------------
 X_train_sel = X_train[selected_features].copy()
@@ -64,7 +60,7 @@ if numeric_cols:
     X_train_sel[numeric_cols] = scaler.fit_transform(X_train_sel[numeric_cols])
     X_test_sel[numeric_cols] = scaler.transform(X_test_sel[numeric_cols])
 
-# ---------------- Final Model ----------------
+# ---------------- Train final model ----------------
 final_model = XGBClassifier(
     objective="binary:logistic",
     eval_metric="logloss",
@@ -82,22 +78,20 @@ final_model = XGBClassifier(
 )
 
 final_model.fit(X_train_sel, y_train)
-print("\n✅ Model training complete!")
+print("✅ Model trained successfully!")
 
 # ---------------- Evaluate ----------------
 y_train_pred = final_model.predict(X_train_sel)
 y_probs = final_model.predict_proba(X_test_sel)[:, 1]
-threshold = 0.55  # instead of 0.45
+threshold = 0.55
 y_test_pred = (y_probs >= threshold).astype(int)
 
-tn, fp, fn, tp = confusion_matrix(y_test, y_test_pred).ravel()
-print(f"\nThreshold set to {threshold:.2f}")
-print(f"False Negatives: {fn}, False Positives: {fp}")
-print(f"\nTraining Accuracy: {accuracy_score(y_train, y_train_pred):.4f}")
-print(f"Testing Accuracy: {accuracy_score(y_test, y_test_pred):.4f}")
-print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_test_pred))
-print("\nClassification Report:\n", classification_report(y_test, y_test_pred))
-# ---------------- Save Model Bundle ----------------
+print("Training Accuracy:", accuracy_score(y_train, y_train_pred))
+print("Testing Accuracy:", accuracy_score(y_test, y_test_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_test_pred))
+print("Classification Report:\n", classification_report(y_test, y_test_pred))
+
+# ---------------- Save model bundle ----------------
 bundle = {
     "model": final_model,
     "scaler": scaler,
@@ -105,12 +99,7 @@ bundle = {
     "threshold": threshold
 }
 
-
-bundle_path = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6v2.pkl")
+bundle_path = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 joblib.dump(bundle, bundle_path)
-print(f"\n✅ Full pipeline (model + scaler + features) saved at '{bundle_path}'")
+print(f"✅ Pipeline saved at {bundle_path}")
 
-# Optional: Save test data for future explanation
-joblib.dump({"X_test": X_test_sel, "y_test": y_test}, os.path.join(MODEL_DIR, "test_data.pkl"))
-
-print("\n🎯 Training complete and model ready for deployment!")
