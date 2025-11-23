@@ -133,8 +133,8 @@ def about():
     return render_template("about.html")
 
 
-# --------------------------
-#@app.route("/predict", methods=["POST"])
+--------------------------
+@app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
         return "❌ Error: Machine Learning model is not loaded.", 500
