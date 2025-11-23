@@ -4,84 +4,288 @@
 <head>
     <meta charset="UTF-8">
     <title>HyperBoost | Predict</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
-        /* Navbar link default and hover styles */
-.navbar-nav .nav-link {
-    color: #343a40; /* default dark color */
-    transition: color 0.3s;
-}
-
-.navbar-nav .nav-link:hover {
-    color: #dc3545; /* red on hover */
-}
-
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            position: relative;
+        /* Reset */
+        * {
             margin: 0;
-            min-height: 100vh;
-            color: #212529;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        /* Background watermark */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url("https://media.istockphoto.com/id/1687458968/photo/medical-technology-concept-3d-rendering.jpg?s=612x612&w=0&k=20&c=kYW968kLuD1GdwldE8xZP2Hej2aBio1TZBcioIyOa18=") no-repeat center center;
-            background-size: cover;
-            filter: blur(10px) brightness(0.5);
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0d1b24, #2582A1);
+            color: #fff;
+            position: relative;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Floating blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            animation: float 14s infinite ease-in-out alternate, pulse 6s infinite ease-in-out alternate;
             z-index: -1;
         }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(12px);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
-            margin-top: 30px;
+        .blob1 {
+            width: 400px;
+            height: 400px;
+            background: #34b4d1;
+            top: -10%;
+            left: -5%;
         }
 
-        @media (max-width: 576px) {
+        .blob2 {
+            width: 300px;
+            height: 300px;
+            background: #1c4150;
+            bottom: 5%;
+            right: 10%;
+            animation-duration: 18s;
+        }
+
+        .blob3 {
+            width: 220px;
+            height: 220px;
+            background: #52d4f3;
+            bottom: 25%;
+            left: 10%;
+            animation-duration: 22s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            100% {
+                transform: translateY(40px) rotate(15deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.45;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0.45;
+            }
+        }
+
+        /* Navbar */
+        nav {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            background: rgba(13, 27, 36, 0.7);
+            backdrop-filter: blur(15px);
+            padding: 10px 20px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: #fff !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 0 0 8px #52d4f3;
+        }
+
+        .bi-heart-pulse-fill {
+            color: #52d4f3;
+            font-size: 1.8rem;
+        }
+
+        .nav-link {
+            color: #e4faff !important;
+            margin-left: 16px;
+            font-weight: 500;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0%;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #52d4f3;
+            transition: 0.3s;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .nav-link:hover {
+            color: #fff !important;
+            transform: translateY(-2px);
+        }
+
+        /* Sections */
+        section {
+            padding: 100px 20px;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        section h1,
+        section h2 {
+            color: #52d4f3;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 8px #52d4f3;
+        }
+
+        section p {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            text-align: center;
+            font-size: 1.1rem;
+            color: #e4faff;
+        }
+
+        /* Glass cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(18px);
+            border-radius: 22px;
+            padding: 40px;
+            max-width: 850px;
+            width: 100%;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            margin: 20px auto;
+        }
+
+        .glass-card h3 {
+            color: #52d4f3;
+            margin-bottom: 25px;
+            text-shadow: 0 0 8px #52d4f3;
+        }
+
+        .form-label {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        input,
+        select {
+            background: rgba(255, 255, 255, 0.25);
+            border: none;
+            color: #000;
+            font-weight: 500;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        input:focus,
+        select:focus {
+            background: rgba(255, 255, 255, 0.35);
+            outline: none;
+            color: #000;
+        }
+        footer {
+  text-align: center;
+  padding: 25px 0;
+  margin-top: 40px;
+  color: #dff7ff;
+}
+
+
+     .btn-predict {
+   background: linear-gradient(135deg, #1e3c50, #102635); /* darker cyan = fully visible */
+    color: #fff;
+    font-weight: 600;
+    border-radius: 50px;
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    transition: 0.3s;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.btn-predict:hover {
+    background: #0c8aad;  /* smooth hover */
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+       .hero-container {
+    min-height: 85vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 40px;   /* reduced from 120px */
+    padding-bottom: 40px;
+}
+
+        /* Responsive */
+        @media (max-width: 768px) {
             .glass-card {
-                padding: 20px;
-                margin-top: 20px;
+                padding: 25px;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 10px;
             }
         }
     </style>
 </head>
 
 <body>
-<nav class="navbar navbar-light bg-white shadow-sm">
-    <div class="container">
-        <a class="navbar-brand text-danger fw-bold" href="/"><i class="bi bi-heart-pulse"></i> HyperBoost</a>
+    <!-- Floating blobs -->
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div class="blob blob3"></div>
 
-        <ul class="navbar-nav d-flex flex-row ms-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="/">Home</a>
-            </li>
-            <li class="nav-item ms-3">
-                <a class="nav-link" href="/learn">FAQ</a>
-            </li>
-        </ul>
-    </div>
-</nav>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="bi bi-heart-pulse-fill"></i> HyperBoost</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/learn">FAQ</a></li>
 
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <div class="container">
-        <div class="col-12 col-md-8 mx-auto glass-card">
-            <h3 class="text-danger mb-3"><i class="bi bi-clipboard2-pulse"></i> Enter Patient Details</h3>
-
+    <!-- Home / Hero Section with Predict Form -->
+    <section id="home" class="hero-container">
+        <div class="glass-card">
+            <h3><i class="bi bi-clipboard2-pulse"></i> Enter Patient Details</h3>
             <form action="/predict" method="post" class="row g-3">
-                <!-- Example: Sex -->
                 <div class="col-md-6">
                     <label class="form-label">Sex</label>
                     <select name="Sex" class="form-control" id="sex" onchange="togglePregnancy()">
@@ -89,7 +293,6 @@
                         <option value="0">Female</option>
                     </select>
                 </div>
-
                 <div class="col-md-6">
                     <label class="form-label">Pregnancy</label>
                     <select name="Pregnancy" class="form-control" id="pregnancy">
@@ -97,118 +300,129 @@
                         <option value="1">Yes</option>
                     </select>
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label">Smoking</label>
+                    <select name="Smoking" class="form-control">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Chronic Kidney Disease</label>
+                    <select name="Chronic_kidney_disease" class="form-control">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Adrenal & Thyroid Disorders</label>
+                    <select name="Adrenal_and_thyroid_disorders" class="form-control">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Genetic Pedigree Coefficient</label>
+                    <select name="Genetic_Pedigree_Coefficient" class="form-control">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+            <div class="col-md-6">
+                <label class="form-label">Level of Stress</label>
+                <select name="Level_of_Stress" class="form-control">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Physical Activity</label>
+                <select name="Physical_activity" class="form-control">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </div>
 
-                <!-- Repeat other fields similarly -->
-                    <div class="col-md-6">
-                        <label class="form-label">Smoking</label>
-                        <select name="Smoking" class="form-control">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    
-                    <!-- CKD -->
-                    <div class="col-md-6">
-                        <label class="form-label">Chronic Kidney Disease</label>
-                        <select name="Chronic_kidney_disease" class="form-control">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Adrenal/Thyroid -->
-                    <div class="col-md-6">
-                        <label class="form-label">Adrenal & Thyroid Disorders</label>
-                        <select name="Adrenal_and_thyroid_disorders" class="form-control">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    <!-- Genetic -->
-                    <div class="col-md-6">
-                        <label class="form-label">Genetic Pedigree Coefficient</label>
-                        <select name="Genetic_Pedigree_Coefficient" class="form-control">
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Stress -->
-                    <div class="col-md-6">
-                        <label class="form-label">Level of Stress</label>
-                        <select name="Level_of_Stress" class="form-control">
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Salt Intake -->
-                    <div class="col-md-6">
-                        <label class="form-label">Salt Intake</label>
-                        <select name="salt_content_in_the_diet" class="form-control">
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Alcohol -->
-                    <div class="col-md-6">
-                        <label class="form-label">Alcohol Consumption</label>
-                        <select name="alcohol_consumption_per_day" class="form-control">
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Hemoglobin -->
-                    <div class="col-md-6">
-                        <label class="form-label">Hemoglobin (g/dL)</label>
-                        <input type="number" step="0.1" name="Level_of_Hemoglobin" class="form-control" required>
-                    </div>
-                <!-- Age -->
+                <div class="col-md-6">
+                    <label class="form-label">Salt Intake</label>
+                    <select name="salt_content_in_the_diet" class="form-control">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Alcohol Consumption</label>
+                    <select name="alcohol_consumption_per_day" class="form-control">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Hemoglobin (g/dL)</label>
+                    <input type="number" step="0.1" name="Level_of_Hemoglobin" class="form-control" required>
+                </div>
                 <div class="col-md-6">
                     <label class="form-label">Age</label>
                     <input type="number" name="Age" class="form-control" required>
                 </div>
-
-                <!-- BMI -->
                 <div class="col-md-6">
                     <label class="form-label">BMI</label>
                     <input type="number" step="0.1" name="BMI" class="form-control" required>
                 </div>
-
-                <!-- Submit Button -->
-                <div class="col-12 mt-3">
-                    <button class="btn btn-danger w-100">
-                        <i class="bi bi-search-heart"></i> Predict Risk
-                    </button>
+                <div class="col-12">
+                    <button class="btn btn-predict" type="submit"><i class="bi bi-search-heart"></i> Predict
+                        Risk</button>
                 </div>
             </form>
         </div>
-    </div>
+    </section>
+
+
+  
 
     <script>
+        // Toggle Pregnancy field based on sex
         function togglePregnancy() {
             const sex = document.getElementById("sex").value;
             const pregnancy = document.getElementById("pregnancy");
-            if (sex === "1") {
+            if (sex === "1") { // Male
                 pregnancy.value = "0";
                 pregnancy.disabled = true;
-                pregnancy.style.backgroundColor = "#eee";
-            } else {
+                pregnancy.style.backgroundColor = "#ddd";
+            } else { // Female
                 pregnancy.disabled = false;
-                pregnancy.style.backgroundColor = "white";
+                pregnancy.style.backgroundColor = "rgba(255,255,255,0.25)";
             }
         }
         window.onload = togglePregnancy;
+
+        // Smooth scroll active nav highlight
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 80;
+                if (pageYOffset >= sectionTop) current = section.getAttribute('id');
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) link.classList.add('active');
+            });
+        });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+<footer>
+    © 2025 HyperBoost — AI for Smarter Healthcare
+</footer>
 
 </html>
-
-
-
