@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 from flask import Flask, request, render_template
 from xgboost import XGBClassifier, Booster
+import xgboost as xgb
 
 app = Flask(__name__)
 
@@ -30,9 +31,11 @@ class XGBWrapper:
         self.booster = booster
     def predict_proba(self, X):
         import numpy as np
-        dmatrix = XGBClassifier()._dmatrix(X)
+        import xgboost as xgb
+        dmatrix = xgb.DMatrix(X)
         preds = self.booster.predict(dmatrix)
         return np.vstack([1 - preds, preds]).T
+
 
 xgb_model = XGBWrapper(booster) if booster else None
 # --------------------------
@@ -133,10 +136,9 @@ def about():
     return render_template("about.html")
 
 
---------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
-    if model is None:
+    if xgb_model is None:
         return "❌ Error: Machine Learning model is not loaded.", 500
 
     try:
@@ -183,59 +185,15 @@ def predict():
         if len(numeric_cols) > 0:
             X_input[numeric_cols] = scaler.transform(X_input[numeric_cols])
 
-        # ---------------- Predict probability ----------------
-        prob = model.predict_proba(X_input)[:, 1][0]
+        prob = xgb_model.predict_proba(X_input)[:, 1][0]
 
         # ---------------- Override logic for clearly healthy individuals ----------------
-        def apply_override(data, prob, threshold):
-            healthy = (
-                data["Age"] < 30
-                and 18.5 <= data["BMI"] <= 25
-                and data["Level_of_Stress"] == 1.0
-                and data["Smoking"] == 0
-                and data["Chronic_kidney_disease"] == 0
-                and data["Adrenal_and_thyroid_disorders"] == 0
-            )
-            if healthy:
-                return min(prob, 0.5), "Normal"
-            return prob, "Abnormal" if prob >= threshold else "Normal"
+        prob, result = apply_health_override(data, prob, threshold)
 
-        prob, result = apply_override(data, prob, threshold)
 
         # ---------------- Generate dynamic health tips ----------------
-        def generate_tips(data, result):
-            tips = []
-            if data["Smoking"] == 1:
-                tips.append("Avoid smoking to reduce hypertension risk.")
-            if data["Level_of_Stress"] >= 2.0:
-                tips.append("Practice stress-reducing activities like meditation or yoga.")
-            if data["salt_content_in_the_diet"] >= 2.0:
-                tips.append("Reduce daily salt intake.")
-            if data["alcohol_consumption_per_day"] >= 2.0:
-                tips.append("Limit alcohol consumption.")
-            if data["Physical_activity"] <= 1.0:
-                tips.append("Engage in at least 30 minutes of daily exercise.")
-            if data["BMI"] < 18.5:
-                tips.append("Maintain a healthy body weight (underweight).")
-            elif data["BMI"] > 25:
-                tips.append("Maintain a healthy body weight (overweight).")
-            if data["Pregnancy"] == 1:
-                tips.append("Consult your doctor regularly for BP monitoring during pregnancy.")
-            if data["Level_of_Hemoglobin"] > 16.0:
-                tips.append("High hemoglobin detected; consult your doctor.")
-            if data["Genetic_Pedigree_Coefficient"] == 3.0:
-                tips.append("High genetic risk; monitor BP regularly.")
-            elif data["Genetic_Pedigree_Coefficient"] == 2.0:
-                tips.append("Moderate genetic risk; maintain healthy lifestyle.")
+        tips = generate_health_tips(data, result)
 
-            if not tips:
-                tips.append(
-                    "Continue healthy habits and regular BP check-ups." if result == "Normal"
-                    else "Monitor your blood pressure and consult a healthcare professional."
-                )
-            return tips
-
-        tips = generate_tips(data, result)
 
         # ---------------- Render result ----------------
         return render_template(
