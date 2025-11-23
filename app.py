@@ -125,10 +125,12 @@ def about():
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
+        print("❌ ERROR: Model is not loaded. Check 'ml_models/xgb_pipeline_rfe_top6v2.pkl'")
         return "❌ Error: Machine Learning model is not loaded.", 500
-    
+
     try:
         form = request.form
+        print("[DEBUG] Form data received:", form)
 
         # ---------------- Safe numeric parsing ----------------
         def safe_int(val, default=0):
@@ -145,16 +147,14 @@ def predict():
 
         # ---------------- Gather form data ----------------
         data = {
-            "Sex": safe_int(form.get("Sex"), 0),
-            "Pregnancy": safe_int(form.get("Pregnancy") or form.get("Pregnancy_hidden"), 0),
-            "Smoking": safe_int(form.get("Smoking"), 0),
-            "Chronic_kidney_disease": safe_int(form.get("Chronic_kidney_disease"), 0),
-            "Adrenal_and_thyroid_disorders": safe_int(form.get("Adrenal_and_thyroid_disorders"), 0),
-
-            "Level_of_Hemoglobin": safe_float(form.get("Level_of_Hemoglobin"), 14.0),
-            "Age": safe_float(form.get("Age"), 30.0),
-            "BMI": safe_float(form.get("BMI"), 22.0),
-
+            "Sex": safe_int(form.get("Sex")),
+            "Pregnancy": safe_int(form.get("Pregnancy") or form.get("Pregnancy_hidden")),
+            "Smoking": safe_int(form.get("Smoking")),
+            "Chronic_kidney_disease": safe_int(form.get("Chronic_kidney_disease")),
+            "Adrenal_and_thyroid_disorders": safe_int(form.get("Adrenal_and_thyroid_disorders")),
+            "Level_of_Hemoglobin": safe_float(form.get("Level_of_Hemoglobin")),
+            "Age": safe_float(form.get("Age")),
+            "BMI": safe_float(form.get("BMI")),
             "Genetic_Pedigree_Coefficient": form.get("Genetic_Pedigree_Coefficient"),
             "Level_of_Stress": form.get("Level_of_Stress"),
             "salt_content_in_the_diet": form.get("salt_content_in_the_diet"),
@@ -171,7 +171,8 @@ def predict():
             "alcohol_consumption_per_day",
             "Physical_activity",
         ]:
-            data[key] = encode.get(data[key], 2.0)  # default to Medium if missing
+            data[key] = encode.get(data[key], 2.0)  # default to Medium
+        print("[DEBUG] Encoded features:", data)
 
         # ---------------- Prepare input ----------------
         X_input = pd.DataFrame([data], columns=features)
@@ -179,12 +180,15 @@ def predict():
         numeric_cols = X_scaled.select_dtypes(include=["float64", "int64"]).columns
         if len(numeric_cols) > 0:
             X_scaled[numeric_cols] = scaler.transform(X_scaled[numeric_cols])
+        print("[DEBUG] Input ready for prediction:\n", X_scaled)
 
         # ---------------- Predict probability ----------------
         prob = model.predict_proba(X_scaled)[:, 1][0]
+        print(f"[DEBUG] Raw predicted probability: {prob}")
 
         # ---------------- Apply override logic ----------------
         prob, result = apply_health_override(data, prob, threshold)
+        print(f"[DEBUG] After override: {prob}, Result: {result}")
 
         # ---------------- Generate dynamic tips ----------------
         tips = generate_health_tips(data, result)
@@ -198,8 +202,7 @@ def predict():
         )
 
     except Exception as e:
-        # Log error for debugging (check Render logs)
-        print(f"[PREDICTION ERROR] {e}")
+        print(f"[PREDICTION ERROR] {e}", flush=True)
         return render_template(
             "error.html",
             error_message=(
@@ -207,6 +210,7 @@ def predict():
                 "Please ensure all fields are filled correctly and try again."
             )
         )
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
