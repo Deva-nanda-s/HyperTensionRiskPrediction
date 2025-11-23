@@ -41,7 +41,6 @@ print(f"⚖️ scale_pos_weight = {scale_pos_weight:.2f}")
 # ---------------- RFE with XGBoost ----------------
 xgb_base = XGBClassifier(
     random_state=42,
-    use_label_encoder=False,
     eval_metric='logloss',
     n_estimators=100
 )
@@ -78,9 +77,10 @@ final_model = XGBClassifier(
     reg_lambda=2,
     reg_alpha=0.3,
     scale_pos_weight=scale_pos_weight,
-    gamma=0.1,  # prevents over-splitting
+    gamma=0.1,
     min_child_weight=5
 )
+
 final_model.fit(X_train_sel, y_train)
 print("\n✅ Model training complete!")
 

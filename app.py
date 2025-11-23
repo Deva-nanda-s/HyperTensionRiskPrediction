@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import numpy as np
 import joblib
 import os
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -171,8 +172,11 @@ def predict():
             data[key] = encode.get(data[key], 2.0)  # default to Medium if missing
 
         # ---------------- Prepare input ----------------
-        X_input = np.array([data[f] for f in features]).reshape(1, -1)
-        X_scaled = scaler.transform(X_input)
+        X_input = pd.DataFrame([data], columns=features)
+        X_scaled = X_input.copy()
+        numeric_cols = X_scaled.select_dtypes(include=["float64", "int64"]).columns
+        if len(numeric_cols) > 0:
+            X_scaled[numeric_cols] = scaler.transform(X_scaled[numeric_cols])
 
         # ---------------- Predict probability ----------------
         prob = model.predict_proba(X_scaled)[:, 1][0]
