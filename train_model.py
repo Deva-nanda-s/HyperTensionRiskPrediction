@@ -7,6 +7,7 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import RFE
+import xgboost as xgb
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
@@ -103,6 +104,7 @@ bundle = {
     "features": selected_features,
     "threshold": threshold
 }
+
 
 bundle_path = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 joblib.dump(bundle, bundle_path)

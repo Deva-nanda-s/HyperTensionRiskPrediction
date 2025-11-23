@@ -293,13 +293,16 @@
                         <option value="0">Female</option>
                     </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Pregnancy</label>
-                    <select name="Pregnancy" class="form-control" id="pregnancy">
-                        <option value="0">No</option>
-                        <option value="1">Yes</option>
-                    </select>
-                </div>
+            <div class="col-md-6">
+                <label class="form-label">Pregnancy</label>
+                <select name="Pregnancy" class="form-control" id="pregnancy">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+                <!-- Hidden input to always submit a value -->
+                <input type="hidden" name="Pregnancy_hidden" id="Pregnancy_hidden" value="0">
+            </div>
+
                 <div class="col-md-6">
                     <label class="form-label">Smoking</label>
                     <select name="Smoking" class="form-control">
@@ -388,19 +391,30 @@
 
     <script>
         // Toggle Pregnancy field based on sex
-        function togglePregnancy() {
+      function togglePregnancy() {
             const sex = document.getElementById("sex").value;
             const pregnancy = document.getElementById("pregnancy");
+            const pregnancyHidden = document.getElementById("Pregnancy_hidden");
+
             if (sex === "1") { // Male
                 pregnancy.value = "0";
                 pregnancy.disabled = true;
                 pregnancy.style.backgroundColor = "#ddd";
+                pregnancyHidden.value = "0"; // ensure 0 is submitted
             } else { // Female
                 pregnancy.disabled = false;
                 pregnancy.style.backgroundColor = "rgba(255,255,255,0.25)";
+                pregnancyHidden.value = pregnancy.value; // sync hidden input
             }
         }
+
+        // Also update hidden input when user changes Pregnancy select
+        document.getElementById("pregnancy").addEventListener('change', function () {
+            document.getElementById("Pregnancy_hidden").value = this.value;
+        });
+
         window.onload = togglePregnancy;
+
 
         // Smooth scroll active nav highlight
         const sections = document.querySelectorAll('section');
