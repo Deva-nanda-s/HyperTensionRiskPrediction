@@ -6,7 +6,8 @@ from flask import Flask, request, render_template
 app = Flask(__name__)
 
 # ---------------- Paths ----------------
-MODEL_DIR = "ml_models"
+BASE_DIR = os.path.dirname(__file__)
+MODEL_DIR = os.path.join(BASE_DIR, "ml_models")
 PIPELINE_BUNDLE = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 
 # ---------------- Load Pipeline ----------------
