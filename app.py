@@ -1,7 +1,6 @@
 import os
 import joblib
 import pandas as pd
-import pkg_resources       # <-- added to fix pipeline loading error
 from flask import Flask, request, render_template
 
 app = Flask(__name__)
