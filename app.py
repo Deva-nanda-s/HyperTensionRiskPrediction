@@ -131,7 +131,7 @@ def predict():
         if len(numeric_cols) > 0:
             X_input[numeric_cols] = scaler.transform(X_input[numeric_cols])
 
-        # Prediction
+        # XGBoost prediction (compatible with older version)
         prob = xgb_model.predict_proba(X_input)[:, 1][0]
 
         # Apply override and generate tips
