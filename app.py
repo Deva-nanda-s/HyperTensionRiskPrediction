@@ -9,18 +9,28 @@ app = Flask(__name__)
 MODEL_DIR = "ml_models"
 PIPELINE_BUNDLE = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 
+# ---------------- Load Model ----------------
+def load_pipeline():
+    """Load the XGBoost pipeline safely and fix old XGBoost models."""
+    global xgb_model, scaler, features, threshold
+    try:
+        pipeline_bundle = joblib.load(PIPELINE_BUNDLE)
+        xgb_model = pipeline_bundle["model"]
+        scaler = pipeline_bundle["scaler"]
+        features = pipeline_bundle["features"]
+        threshold = pipeline_bundle.get("threshold", 0.55)
 
-try:
-    pipeline_bundle = joblib.load(PIPELINE_BUNDLE)
-    xgb_model = pipeline_bundle["model"]
-    scaler = pipeline_bundle["scaler"]
-    features = pipeline_bundle["features"]
-    threshold = pipeline_bundle.get("threshold", 0.55)
-    print("✅ Pipeline loaded successfully")
-except Exception as e:
-    print("❌ Error loading pipeline:", e)
-    xgb_model, scaler, features, threshold = None, None, [], 0.55
+        # Fix for older XGBoost models
+        if hasattr(xgb_model, "use_label_encoder"):
+            xgb_model.use_label_encoder = False
 
+        print("✅ Pipeline loaded successfully")
+    except Exception as e:
+        print("❌ Error loading pipeline:", e)
+        xgb_model, scaler, features, threshold = None, None, [], 0.55
+
+# Initial load
+load_pipeline()
 
 # ---------------- HELPER FUNCTIONS ----------------
 def apply_health_override(data, prob, threshold):
@@ -83,6 +93,12 @@ def learn():
 @app.route("/about")
 def about():
     return render_template("about.html")
+
+@app.route("/reload_model")
+def reload_model():
+    """Manually reload the XGBoost pipeline."""
+    load_pipeline()
+    return "✅ Model reloaded successfully."
 
 @app.route("/predict", methods=["POST"])
 def predict():
