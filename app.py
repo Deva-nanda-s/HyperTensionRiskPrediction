@@ -1,6 +1,7 @@
 import os
 import joblib
 import pandas as pd
+import pkg_resources 
 from flask import Flask, request, render_template
 
 app = Flask(__name__)
