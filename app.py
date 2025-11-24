@@ -2,6 +2,7 @@ import os
 import joblib
 import pandas as pd
 from flask import Flask, request, render_template
+from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
 
@@ -9,28 +10,25 @@ app = Flask(__name__)
 MODEL_DIR = "ml_models"
 PIPELINE_BUNDLE = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 
-# ---------------- Load Model ----------------
-def load_pipeline():
-    """Load the XGBoost pipeline safely and fix old XGBoost models."""
-    global xgb_model, scaler, features, threshold
-    try:
-        pipeline_bundle = joblib.load(PIPELINE_BUNDLE)
-        xgb_model = pipeline_bundle["model"]
-        scaler = pipeline_bundle["scaler"]
-        features = pipeline_bundle["features"]
-        threshold = pipeline_bundle.get("threshold", 0.55)
+# ---------------- Load Pipeline ----------------
+try:
+    pipeline_bundle = joblib.load(PIPELINE_BUNDLE)
+    xgb_model = pipeline_bundle.get("model")
+    scaler = pipeline_bundle.get("scaler", StandardScaler())
+    features = pipeline_bundle.get("features", [])
+    threshold = pipeline_bundle.get("threshold", 0.55)
 
-        # Fix for older XGBoost models
-        if hasattr(xgb_model, "use_label_encoder"):
-            xgb_model.use_label_encoder = False
+    # Compatibility fix for older XGBoost models
+    if hasattr(xgb_model, "use_label_encoder"):
+        try:
+            del xgb_model.use_label_encoder
+        except Exception:
+            pass
 
-        print("✅ Pipeline loaded successfully")
-    except Exception as e:
-        print("❌ Error loading pipeline:", e)
-        xgb_model, scaler, features, threshold = None, None, [], 0.55
-
-# Initial load
-load_pipeline()
+    print("✅ Pipeline loaded successfully")
+except Exception as e:
+    print("❌ Error loading pipeline:", e)
+    xgb_model, scaler, features, threshold = None, StandardScaler(), [], 0.55
 
 # ---------------- HELPER FUNCTIONS ----------------
 def apply_health_override(data, prob, threshold):
@@ -94,16 +92,10 @@ def learn():
 def about():
     return render_template("about.html")
 
-@app.route("/reload_model")
-def reload_model():
-    """Manually reload the XGBoost pipeline."""
-    load_pipeline()
-    return "✅ Model reloaded successfully."
-
 @app.route("/predict", methods=["POST"])
 def predict():
-    if xgb_model is None or scaler is None:
-        return "❌ Error: Model or pipeline not loaded.", 500
+    if xgb_model is None or not features:
+        return "❌ Error: Model or features not loaded.", 500
 
     try:
         form = request.form
@@ -145,7 +137,7 @@ def predict():
         # Prepare input
         X_input = pd.DataFrame([data], columns=features)
         numeric_cols = X_input.select_dtypes(include=["float64", "int64"]).columns
-        if len(numeric_cols) > 0:
+        if len(numeric_cols) > 0 and scaler is not None:
             X_input[numeric_cols] = scaler.transform(X_input[numeric_cols])
 
         # Prediction
