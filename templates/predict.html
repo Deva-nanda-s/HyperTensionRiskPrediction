@@ -366,17 +366,19 @@
                         <option value="High">High</option>
                     </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Hemoglobin (g/dL)</label>
-                    <input type="number" step="0.1" name="Level_of_Hemoglobin" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Age</label>
-                    <input type="number" name="Age" class="form-control" required>
-                </div>
+            <div class="col-md-6">
+                <label class="form-label">Hemoglobin (g/dL)</label>
+                <input type="number" step="0.01" name="Level_of_Hemoglobin" class="form-control" required min="8.12" max="17.14"
+                    placeholder="8.12 - 17.14">
+
+            </div>
+            <div class="col-md-6">
+            <label class="form-label">Age</label>
+            <input type="number" name="Age" class="form-control" required min="18" max="100">
+            </div>
                 <div class="col-md-6">
                     <label class="form-label">BMI</label>
-                    <input type="number" step="0.1" name="BMI" class="form-control" required>
+                    <input type="number" step="0.1" name="BMI" class="form-control" required min="10" max="50">
                 </div>
                 <div class="col-12">
                     <button class="btn btn-predict" type="submit"><i class="bi bi-search-heart"></i> Predict
