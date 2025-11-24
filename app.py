@@ -12,16 +12,16 @@ PIPELINE_BUNDLE = os.path.join(MODEL_DIR, "xgb_pipeline_rfe_top6.pkl")
 # ---------------- Load Pipeline ----------------
 try:
     pipeline_bundle = joblib.load(PIPELINE_BUNDLE)
-    xgb_model = pipeline_bundle["model"]
-    scaler = pipeline_bundle["scaler"]
-    features = pipeline_bundle["features"]
+    xgb_model = pipeline_bundle.get("model")
+    scaler = pipeline_bundle.get("scaler")
+    features = pipeline_bundle.get("features", [])
     threshold = pipeline_bundle.get("threshold", 0.55)
     print("✅ Pipeline loaded successfully")
 except Exception as e:
     print("❌ Error loading pipeline:", e)
     xgb_model, scaler, features, threshold = None, None, [], 0.55
 
-# ---------------- HELPER FUNCTIONS ----------------
+# ---------------- Helper Functions ----------------
 def apply_health_override(data, prob, threshold):
     is_clearly_healthy = (
         data["Age"] < 30
@@ -66,7 +66,7 @@ def generate_health_tips(data, result):
         )
     return tips
 
-# ---------------- ROUTES ----------------
+# ---------------- Routes ----------------
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -131,7 +131,7 @@ def predict():
         if len(numeric_cols) > 0:
             X_input[numeric_cols] = scaler.transform(X_input[numeric_cols])
 
-        # XGBoost prediction (compatible with older version)
+        # Prediction
         prob = xgb_model.predict_proba(X_input)[:, 1][0]
 
         # Apply override and generate tips
@@ -152,6 +152,7 @@ def predict():
             error_message="⚠️ An internal error occurred during prediction. Ensure all fields are correct."
         )
 
+# ---------------- Run App ----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
